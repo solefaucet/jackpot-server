@@ -1,0 +1,27 @@
+{
+  "name": "jackpot-server",
+  "version": "0.0.1",
+  "description": "jackpot server",
+  "dependencies": {},
+  "devDependencies": {
+    "cz-conventional-changelog": "^1.1.5"
+  },
+  "scripts": {
+    "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/solefaucet/jackpot-server.git"
+  },
+  "author": "solefaucet",
+  "license": "GPLv3",
+  "bugs": {
+    "url": "https://github.com/solefaucet/jackpot-server/issues"
+  },
+  "homepage": "https://github.com/solefaucet/jackpot-server#readme",
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
+  }
+}
