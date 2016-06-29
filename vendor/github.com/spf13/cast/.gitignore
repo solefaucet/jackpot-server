@@ -21,6 +21,3 @@ _testmain.go
 
 *.exe
 *.test
-*.prof
-node_modules
-jackpot-server
