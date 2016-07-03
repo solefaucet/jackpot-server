@@ -9,13 +9,20 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/robfig/cron"
+	"github.com/solefaucet/jackpot-server/jerrors"
 	"github.com/solefaucet/jackpot-server/models"
+	s "github.com/solefaucet/jackpot-server/services/storage"
+	"github.com/solefaucet/jackpot-server/services/storage/mysql"
+	w "github.com/solefaucet/jackpot-server/services/wallet"
+	"github.com/solefaucet/jackpot-server/services/wallet/core"
 	"github.com/solefaucet/jackpot-server/utils"
 	grayloghook "github.com/yumimobi/logrus-graylog2-hook"
 )
 
 var (
 	logger  = log.New(os.Stderr, "", log.Ldate|log.Ltime|log.Llongfile)
+	wallet  w.Wallet
+	storage s.Storage
 )
 
 func initService() {
@@ -42,6 +49,21 @@ func initService() {
 		),
 	).(logrus.Hook)
 	logrus.AddHook(graylogHook)
+
+	// storage
+	store := mysql.New(config.DB.DataSourceName)
+	store.SetMaxOpenConns(config.DB.MaxOpenConns)
+	store.SetMaxIdleConns(config.DB.MaxIdleConns)
+	storage = store
+
+	// wallet
+	wallet = utils.Must(
+		core.New(
+			config.Wallet.Host,
+			config.Wallet.Username,
+			config.Wallet.Password,
+		),
+	).(w.Wallet)
 
 	// init cronjob
 	initCronjob()
@@ -72,6 +94,36 @@ func initCronjob() {
 
 func addNewBlock() {
 	entry := logrus.WithField("event", models.LogEventAddNewBlock)
+
+	// get latest block from db
+	block, err := storage.GetLatestBlock()
+	if err != nil && err != jerrors.ErrNotFound {
+		entry.WithError(err).Error("fail to get latest block from database")
+		return
+	}
+
+	// get block from blockchain
+	bestBlock := err == jerrors.ErrNotFound
+	blockchainBlock, err := wallet.GetBlock(bestBlock, block.Height+1)
+	switch {
+	case err == jerrors.ErrNoNewBlock:
+		entry.Info("no new block ahead")
+		return
+	case err != nil:
+		entry.WithError(err).Error("fail to get block from blockchain")
+		return
+	}
+
+	// save block to storage
+	block = models.Block{
+		Hash:           blockchainBlock.Hash,
+		Height:         blockchainBlock.Height,
+		BlockCreatedAt: blockchainBlock.BlockCreatedAt.UTC(),
+	}
+	if err := storage.SaveBlock(block); err != nil {
+		entry.WithError(err).Error("fail to save block to database")
+		return
+	}
 
 	entry.Info("add new block successfully")
 }
