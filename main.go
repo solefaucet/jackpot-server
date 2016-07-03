@@ -88,7 +88,8 @@ func main() {
 
 func initCronjob() {
 	c := cron.New()
-	utils.Must(nil, c.AddFunc("@every 1m", safeFuncWrapper(addNewBlock))) // add new block every 1 minute
+	utils.Must(nil, c.AddFunc("@every 1m", safeFuncWrapper(addNewBlock)))        // add new block every 1 minute
+	utils.Must(nil, c.AddFunc("@every 1m", safeFuncWrapper(addNewTransactions))) // add new transactions every 1 minute
 	c.Start()
 }
 
@@ -129,6 +130,55 @@ func addNewBlock() {
 
 	// keep adding until no blocks is ahead
 	addNewBlock()
+}
+
+func addNewTransactions() {
+	entry := logrus.WithField("event", models.LogEventAddNewTransactions)
+
+	hash, err := storage.GetLatestTransactionBlockHash()
+	if err != nil {
+		entry.WithError(err).Error("fail to get latest transaction block hash from db")
+		return
+	}
+
+	transactions, err := wallet.GetReceivedSince(hash, config.Wallet.MinConfirms)
+	if err != nil {
+		entry.WithFields(logrus.Fields{
+			"hash":  hash,
+			"error": err,
+		}).Error("fail to get received since block")
+		return
+	}
+
+	// interrupt here
+	if len(transactions) == 0 {
+		entry.Info("no new transactions")
+		return
+	}
+
+	if err := storage.SaveTransactions(walletTxsToModelTxs(transactions)); err != nil {
+		entry.WithError(err).Error("fail to save transactions")
+		return
+	}
+
+	entry.Info("add new transactions successfully")
+
+	// keep adding until no blocks is ahead
+	addNewTransactions()
+}
+
+func walletTxsToModelTxs(txs []w.Transaction) []models.Transaction {
+	transactions := make([]models.Transaction, len(txs))
+	for i, v := range txs {
+		transactions[i] = models.Transaction{
+			Address:        v.Address,
+			Amount:         v.Amount,
+			TransactionID:  v.TransactionID,
+			Hash:           v.Hash,
+			BlockCreatedAt: v.BlockCreatedAt,
+		}
+	}
+	return transactions
 }
 
 func catch(then func()) {
