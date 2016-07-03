@@ -2,40 +2,41 @@ package core
 
 import (
 	"github.com/btcsuite/btcd/wire"
+	"github.com/solefaucet/jackpot-server/jerrors"
 	"github.com/solefaucet/jackpot-server/services/wallet"
 )
 
-// GetBestBlockHash get best block hash
-func (w Wallet) GetBestBlockHash() (string, error) {
-	return shaHashToWalletHash(w.client.GetBestBlockHash())
-}
-
-// GetBlockHash get block hash
-func (w Wallet) GetBlockHash(height int64) (string, error) {
-	return shaHashToWalletHash(w.client.GetBlockHash(height))
-}
-
-func shaHashToWalletHash(hash *wire.ShaHash, err error) (string, error) {
-	if err != nil {
-		return "", err
-	}
-	return hash.String(), nil
-}
-
 // GetBlock get block
-func (w Wallet) GetBlock(hash string) (wallet.Block, error) {
-	shaHash, err := wire.NewShaHashFromStr(hash)
+func (w Wallet) GetBlock(bestBlock bool, height int64) (*wallet.Block, error) {
+	h, err := w.client.GetBlockCount()
 	if err != nil {
-		return wallet.Block{}, err
+		return nil, err
 	}
 
-	block, err := w.client.GetBlock(shaHash)
-	if err != nil {
-		return wallet.Block{}, err
+	if bestBlock {
+		height = h
 	}
 
-	return wallet.Block{
-		Height:         int64(block.Height()),
+	if height > h {
+		return nil, jerrors.ErrNoNewBlock
+	}
+
+	hash, err := w.client.GetBlockHash(height)
+	return w.getBlockFromHash(height, hash, err)
+}
+
+func (w Wallet) getBlockFromHash(height int64, hash *wire.ShaHash, err error) (*wallet.Block, error) {
+	if err != nil {
+		return nil, err
+	}
+
+	block, err := w.client.GetBlock(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	return &wallet.Block{
+		Height:         height,
 		Hash:           block.Sha().String(),
 		BlockCreatedAt: block.MsgBlock().Header.Timestamp,
 	}, nil
