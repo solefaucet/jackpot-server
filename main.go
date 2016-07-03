@@ -126,6 +126,9 @@ func addNewBlock() {
 	}
 
 	entry.Info("add new block successfully")
+
+	// keep adding until no blocks is ahead
+	addNewBlock()
 }
 
 func catch(then func()) {
