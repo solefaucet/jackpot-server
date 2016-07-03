@@ -77,6 +77,10 @@
 			"Rev": "302ad4db268b46f9ebda3078f6f7397f96047735"
 		},
 		{
+			"ImportPath": "github.com/btcsuite/go-flags",
+			"Rev": "6c288d648c1cc1befcb90cb5511dcacf64ae8e61"
+		},
+		{
 			"ImportPath": "github.com/btcsuite/go-socks/socks",
 			"Rev": "cfe8b59e565c1a5bd4e2005d77cd9aa8b2e14524"
 		},
@@ -85,9 +89,17 @@
 			"Rev": "53f62d9b43e87a6c56975cf862af7edf33a8d0df"
 		},
 		{
+			"ImportPath": "github.com/btcsuite/goleveldb/leveldb",
+			"Rev": "7834afc9e8cd15233b6c3d97e12674a31ca24602"
+		},
+		{
 			"ImportPath": "github.com/btcsuite/seelog",
 			"Comment": "v2.1-84-g313961b",
 			"Rev": "313961b101eb55f65ae0f03ddd4e322731763b6c"
+		},
+		{
+			"ImportPath": "github.com/btcsuite/snappy-go",
+			"Rev": "0bdef8d067237991ddaa1bb6072a740bc40601ba"
 		},
 		{
 			"ImportPath": "github.com/btcsuite/websocket",
@@ -147,6 +159,11 @@
 		{
 			"ImportPath": "github.com/mitchellh/mapstructure",
 			"Rev": "d2dd0262208475919e1a362f675cfc0e7c10e905"
+		},
+		{
+			"ImportPath": "github.com/robfig/cron",
+			"Comment": "v1-7-g32d9c27",
+			"Rev": "32d9c273155a0506d27cf73dd1246e86a470997e"
 		},
 		{
 			"ImportPath": "github.com/smartystreets/assertions",
