@@ -4,9 +4,7 @@ import "time"
 
 // Wallet defines interface that one should implement for blockchain manipulation
 type Wallet interface {
-	GetBestBlockHash() (string, error)
-	GetBlockHash(height int64) (string, error)
-	GetBlock(hash string) (Block, error)
+	GetBlock(bestBlock bool, height int64) (*Block, error)
 }
 
 // Block _
