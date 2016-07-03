@@ -7,4 +7,8 @@ type Storage interface {
 	// Blocks
 	GetLatestBlock() (models.Block, error)
 	SaveBlock(models.Block) error
+
+	// Transactions
+	GetLatestTransactionBlockHash() (string, error)
+	SaveTransactions(transactions []models.Transaction) error
 }
