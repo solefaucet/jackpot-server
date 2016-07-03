@@ -1,13 +1,21 @@
 package main
 
 import (
+	"fmt"
+	"log"
 	"os"
 	"os/signal"
+	"runtime"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/robfig/cron"
 	"github.com/solefaucet/jackpot-server/models"
 	"github.com/solefaucet/jackpot-server/utils"
 	grayloghook "github.com/yumimobi/logrus-graylog2-hook"
+)
+
+var (
+	logger  = log.New(os.Stderr, "", log.Ldate|log.Ltime|log.Llongfile)
 )
 
 func initService() {
@@ -34,6 +42,9 @@ func initService() {
 		),
 	).(logrus.Hook)
 	logrus.AddHook(graylogHook)
+
+	// init cronjob
+	initCronjob()
 }
 
 func main() {
@@ -53,6 +64,18 @@ func main() {
 	}).Info("service up")
 }
 
+func initCronjob() {
+	c := cron.New()
+	utils.Must(nil, c.AddFunc("@every 1m", safeFuncWrapper(addNewBlock))) // add new block every 1 minute
+	c.Start()
+}
+
+func addNewBlock() {
+	entry := logrus.WithField("event", models.LogEventAddNewBlock)
+
+	entry.Info("add new block successfully")
+}
+
 func catch(then func()) {
 	c := make(chan os.Signal)
 	signal.Notify(c, signals...)
@@ -60,5 +83,23 @@ func catch(then func()) {
 	if then != nil {
 		then()
 		os.Exit(1)
+	}
+}
+
+// wrap a function with recover
+func safeFuncWrapper(f func()) func() {
+	return func() {
+		defer func() {
+			if err := recover(); err != nil {
+				buf := make([]byte, 4096)
+				n := runtime.Stack(buf, false)
+				logrus.WithFields(logrus.Fields{
+					"error": fmt.Sprintf("%v", err),
+					"stack": string(buf[:n]),
+				}).Error("panic")
+				logger.Printf("%v\n%s\n", err, buf)
+			}
+		}()
+		f()
 	}
 }
