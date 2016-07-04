@@ -3,6 +3,7 @@ package mysql
 import (
 	_ "github.com/go-sql-driver/mysql" // is needed for mysql driver registeration
 	"github.com/jmoiron/sqlx"
+	"github.com/solefaucet/jackpot-server/models"
 	"github.com/solefaucet/jackpot-server/services/storage"
 )
 
@@ -42,4 +43,19 @@ func (s Storage) withTx(f func(*sqlx.Tx) error) error {
 	}
 
 	return tx.Commit()
+}
+
+// SaveBlockAndTransactions save block and transactions
+func (s Storage) SaveBlockAndTransactions(block models.Block, transactions []models.Transaction) error {
+	return s.withTx(func(tx *sqlx.Tx) error {
+		if err := saveBlock(tx, block); err != nil {
+			return err
+		}
+
+		if err := saveTransactions(tx, transactions); err != nil {
+			return err
+		}
+
+		return nil
+	})
 }

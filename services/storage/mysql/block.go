@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/solefaucet/jackpot-server/jerrors"
 	"github.com/solefaucet/jackpot-server/models"
 )
@@ -24,9 +25,8 @@ func (s Storage) GetLatestBlock() (models.Block, error) {
 	return block, nil
 }
 
-// SaveBlock saves models.Block
-func (s Storage) SaveBlock(block models.Block) error {
-	_, err := s.db.NamedExec("INSERT INTO `blocks` (`hash`, `height`, `block_created_at`) VALUES (:hash, :height, :block_created_at)", block)
+func saveBlock(tx *sqlx.Tx, block models.Block) error {
+	_, err := tx.NamedExec("INSERT INTO `blocks` (`hash`, `height`, `block_created_at`) VALUES (:hash, :height, :block_created_at)", block)
 	if err != nil {
 		return fmt.Errorf("save block error: %#v", err)
 	}
