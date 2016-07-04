@@ -7,9 +7,11 @@ import (
 	"os/exec"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/solefaucet/jackpot-server/models"
 )
 
 // test helpers
@@ -72,6 +74,31 @@ func TestWithTx(t *testing.T) {
 
 			Convey("It should resemble", func() {
 				So(actual, ShouldResemble, expected)
+			})
+		})
+	})
+}
+
+func TestSaveBlockAndTransactions(t *testing.T) {
+	Convey("Given mysql storage", t, func() {
+		s := prepareDatabaseForTesting()
+
+		Convey("When save block and transactions", func() {
+			err := s.SaveBlockAndTransactions(
+				models.Block{Hash: "hash", Height: 1, BlockCreatedAt: time.Now()},
+				[]models.Transaction{
+					{
+						Address:        "addr",
+						Amount:         10,
+						TransactionID:  "id",
+						Hash:           "hash",
+						BlockCreatedAt: time.Now(),
+					},
+				},
+			)
+
+			Convey("Error should be nil", func() {
+				So(err, ShouldBeNil)
 			})
 		})
 	})
