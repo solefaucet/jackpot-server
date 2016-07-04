@@ -29,3 +29,17 @@ func (s *Storage) SetMaxOpenConns(n int) {
 func (s *Storage) SetMaxIdleConns(n int) {
 	s.db.SetMaxIdleConns(n)
 }
+
+func (s Storage) withTx(f func(*sqlx.Tx) error) error {
+	tx, err := s.db.Beginx()
+	if err != nil {
+		return err
+	}
+
+	if err := f(tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
