@@ -32,10 +32,8 @@ func initWork() {
 
 func work() {
 	for {
-		select {
-		case height := <-blockHeightChan:
-			saveBlockAndTransactions(height)
-		}
+		height := <-blockHeightChan
+		saveBlockAndTransactions(height)
 	}
 }
 
