@@ -27,10 +27,7 @@ func (s Storage) GetLatestTransactionBlockHash() (string, error) {
 // SaveTransactions saves transactions to db
 func (s Storage) SaveTransactions(transactions []models.Transaction) error {
 	return s.withTx(func(tx *sqlx.Tx) error {
-		stmt, err := tx.PrepareNamed("INSERT INTO `transactions` (`address`, `amount`, `tx_id`, `hash`, `block_created_at`) VALUES (:address, :amount, :tx_id, :hash, :block_created_at)")
-		if err != nil {
-			return fmt.Errorf("prepare save transaction statement error: %#v", err)
-		}
+		stmt, _ := tx.PrepareNamed("INSERT INTO `transactions` (`address`, `amount`, `tx_id`, `hash`, `block_created_at`) VALUES (:address, :amount, :tx_id, :hash, :block_created_at)")
 		defer stmt.Close()
 
 		for _, v := range transactions {
