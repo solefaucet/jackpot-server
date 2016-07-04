@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/jmoiron/sqlx"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -48,6 +49,29 @@ func withClosedConn(t *testing.T, description string, f func(Storage) error) {
 
 			Convey("Error should not be nil", func() {
 				So(err, ShouldNotBeNil)
+			})
+		})
+	})
+}
+
+func TestWithTx(t *testing.T) {
+	withClosedConn(t, "When begin transaction", func(s Storage) error {
+		return s.withTx(func(*sqlx.Tx) error {
+			return nil
+		})
+	})
+
+	Convey("Given mysql storage", t, func() {
+		s := prepareDatabaseForTesting()
+		expected := fmt.Errorf("errored")
+
+		Convey("When execute errored sql", func() {
+			actual := s.withTx(func(*sqlx.Tx) error {
+				return expected
+			})
+
+			Convey("It should resemble", func() {
+				So(actual, ShouldResemble, expected)
 			})
 		})
 	})
