@@ -37,6 +37,7 @@ func (w Wallet) getBlockFromHash(height int64, hash *wire.ShaHash, err error) (*
 
 	return &wallet.Block{
 		Height:         height,
+		PrevHash:       block.MsgBlock().Header.PrevBlock.String(),
 		Hash:           block.Sha().String(),
 		BlockCreatedAt: block.MsgBlock().Header.Timestamp,
 	}, nil

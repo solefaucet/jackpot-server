@@ -11,6 +11,7 @@ type Wallet interface {
 // Block _
 type Block struct {
 	Height         int64
+	PrevHash       string
 	Hash           string
 	BlockCreatedAt time.Time
 }
