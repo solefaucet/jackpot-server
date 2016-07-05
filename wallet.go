@@ -9,7 +9,11 @@ import (
 	w "github.com/solefaucet/jackpot-server/services/wallet"
 )
 
-var blockHeightChan = make(chan int64, 2)
+var (
+	blockHeightChan        = make(chan int64, 2)
+	defaultTime            = time.Time{}
+	previousBlockCreatedAt = defaultTime
+)
 
 func initWork() {
 	go work()
@@ -27,6 +31,7 @@ func initWork() {
 		return
 	}
 
+	previousBlockCreatedAt = block.BlockCreatedAt
 	blockHeightChan <- block.Height + 1
 }
 
@@ -47,6 +52,7 @@ func saveBlockAndTransactions(height int64) {
 		"block_height": height,
 	})
 
+	// get new block from blockchain
 	bestBlock := height < 0
 	block, err := wallet.GetBlock(bestBlock, height)
 	if err == jerrors.ErrNoNewBlock {
@@ -60,12 +66,23 @@ func saveBlockAndTransactions(height int64) {
 		return
 	}
 
+	// get receive transactions
 	transactions, err := wallet.GetReceivedSince(block.PrevHash, config.Wallet.MinConfirms)
 	if err != nil {
 		entry.WithField("hash", block.PrevHash).WithError(err).Error("fail to list transactions from blockchain")
 		return
 	}
 
+	// check if it's time to figure out the winner
+	rt := previousBlockCreatedAt.Add(time.Hour).Truncate(time.Hour)
+	if previousBlockCreatedAt != defaultTime && previousBlockCreatedAt.Before(rt) && block.BlockCreatedAt.After(rt) {
+		// TODO:
+		// 1. find the winner address
+		// 2. send coin, get tx_id
+		// 3. update games, set address, win_amount, total_amount, fee, tx_id
+	}
+
+	// save block, transactions
 	if err := storage.SaveBlockAndTransactions(walletBlockToModelBlock(block), walletTxsToModelTxs(transactions)); err != nil {
 		entry.WithField("hash", block.PrevHash).WithError(err).Error("fail to save block and transactions to db")
 		return
@@ -73,6 +90,7 @@ func saveBlockAndTransactions(height int64) {
 
 	entry.Info("save block and transactions successfully")
 	height++
+	previousBlockCreatedAt = block.BlockCreatedAt
 }
 
 func walletTxsToModelTxs(txs []w.Transaction) []models.Transaction {
