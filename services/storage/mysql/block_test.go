@@ -15,7 +15,6 @@ func TestSaveBlock(t *testing.T) {
 		s := prepareDatabaseForTesting()
 
 		Convey("When save block", func() {
-
 			err := s.withTx(func(tx *sqlx.Tx) error {
 				return saveBlock(tx, models.Block{Hash: "hash", Height: 1, BlockCreatedAt: time.Now()})
 			})
@@ -29,8 +28,7 @@ func TestSaveBlock(t *testing.T) {
 	Convey("Given empty mysql storage", t, func() {
 		s := prepareDatabaseForTesting()
 
-		Convey("When save block with closed db connection", func() {
-
+		Convey("When save block with commited connection", func() {
 			err := s.withTx(func(tx *sqlx.Tx) error {
 				tx.Commit()
 				return saveBlock(tx, models.Block{Hash: "hash", Height: 1, BlockCreatedAt: time.Now()})
