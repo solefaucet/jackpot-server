@@ -56,6 +56,14 @@ func (s Storage) SaveBlockAndTransactions(block models.Block, transactions []mod
 			return err
 		}
 
+		totalAmount := 0.0
+		for _, v := range transactions {
+			totalAmount += v.Amount
+		}
+		if err := upsertGame(tx, block.Hash, block.Height, totalAmount, block.BlockCreatedAt); err != nil {
+			return err
+		}
+
 		return nil
 	})
 }
