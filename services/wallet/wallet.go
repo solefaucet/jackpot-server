@@ -5,7 +5,10 @@ import "time"
 // Wallet defines interface that one should implement for blockchain manipulation
 type Wallet interface {
 	GetBlock(bestBlock bool, height int64) (*Block, error)
-	GetReceivedSince(hash string, minConfirms int) ([]Transaction, error)
+	GetReceivedSince(prevHash, curHash string) ([]Transaction, error)
+	SendToAddress(address string, amount float64) (string, error)
+	GetDestAddress() (string, error)
+	GetConfirmationsFromTxID(txID string) (int64, error)
 }
 
 // Block _
@@ -22,5 +25,6 @@ type Transaction struct {
 	Amount         float64
 	TransactionID  string
 	Hash           string
+	Confirmations  int64
 	BlockCreatedAt time.Time
 }
