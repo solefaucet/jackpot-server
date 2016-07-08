@@ -7,6 +7,7 @@ import (
 	"github.com/solefaucet/jackpot-server/jerrors"
 	"github.com/solefaucet/jackpot-server/models"
 	w "github.com/solefaucet/jackpot-server/services/wallet"
+	"github.com/solefaucet/jackpot-server/utils"
 )
 
 var (
@@ -16,6 +17,7 @@ var (
 
 func initWork() {
 	go fetchAndSave()
+	go processAndUpdate()
 
 	// get latest block from db
 	block, err := storage.GetLatestBlock()
@@ -38,6 +40,13 @@ func fetchAndSave() {
 	for {
 		height := <-blockHeightChan
 		saveBlockAndTransactions(height)
+	}
+}
+
+func processAndUpdate() {
+	for {
+		processGames()
+		time.Sleep(time.Minute)
 	}
 }
 
@@ -134,5 +143,115 @@ func walletBlockToModelBlock(blockchainBlock *w.Block) models.Block {
 	}
 }
 
+func processGames() {
+	entry := logrus.WithFields(logrus.Fields{
+		"event": models.LogEventProcessGames,
+	})
+
+	games, err := storage.GetProcessingGames()
+	if err != nil {
+		entry.WithField("error", err.Error()).Error("fail to get processing games")
+		return
 	}
+
+	for _, game := range games {
+		transactions, err := storage.GetTransactionsByGameOf(game.GameOf)
+		if err != nil {
+			entry.WithFields(logrus.Fields{
+				"error":   err.Error(),
+				"game_of": game.GameOf,
+			}).Error("fail to get transactions by game_of")
+			return
+		}
+
+		processingNeeded := true
+		for _, transaction := range transactions {
+			confirmations, err := wallet.GetConfirmationsFromTxID(transaction.TransactionID)
+			if err != nil {
+				entry.WithFields(logrus.Fields{
+					"error": err.Error(),
+					"tx_id": transaction.TransactionID,
+				}).Error("fail to get confirmations by tx id")
+				return
+			}
+
+			if config.Wallet.MinConfirms > confirmations {
+				processingNeeded = false
+			}
+
+			if err := storage.UpdateTransactionConfirmationByID(transaction.ID, confirmations); err != nil {
+				entry.WithFields(logrus.Fields{
+					"error": err.Error(),
+					"tx_id": transaction.TransactionID,
+				}).Error("fail to update transaction confirmation")
+				return
+			}
+		}
+
+		if processingNeeded {
+			winnerAddress, transactionID, winAmount, fee, err := findWinnerAndSendCoins(game.GameOf, game.Hash)
+			if err != nil {
+				entry.WithFields(logrus.Fields{
+					"game_of": game.GameOf,
+					"hash":    game.Hash,
+					"error":   err.Error(),
+				}).Error("fail to find winner and send coins")
+				return
+			}
+
+			g := models.Game{
+				Address:       winnerAddress,
+				WinAmount:     winAmount,
+				Fee:           fee,
+				TransactionID: transactionID,
+				GameOf:        game.GameOf,
+			}
+			if err := storage.UpdateGameToEndedStatus(g); err != nil {
+				entry.WithFields(logrus.Fields{
+					"winner_address": winnerAddress,
+					"win_amount":     winAmount,
+					"fee":            fee,
+					"tx_id":          transactionID,
+					"game_of":        game.GameOf,
+				}).Panic("fail to update game status to ended")
+				return
+			}
+		}
+	}
+}
+
+func findWinnerAndSendCoins(gameOf time.Time, hash string) (winnerAddress, transactionID string, winAmount, fee float64, err error) {
+	transactions, err := storage.GetTransactionsByGameOf(gameOf)
+	if err != nil {
+		return
+	}
+
+	// no transactions, no winner
+	if len(transactions) == 0 {
+		return
+	}
+
+	totalAmount := totalAmountOfTransactions(transactions)
+	fee = totalAmount * config.Jackpot.TransactionFee
+	winAmount = totalAmount - fee
+
+	winnerAddress, err = utils.FindWinner(transactions, hash)
+	if err != nil {
+		return
+	}
+
+	transactionID, err = wallet.SendToAddress(winnerAddress, winAmount)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+func totalAmountOfTransactions(transactions []models.Transaction) float64 {
+	totalAmount := 0.0
+	for _, tx := range transactions {
+		totalAmount += tx.Amount
+	}
+	return totalAmount
 }

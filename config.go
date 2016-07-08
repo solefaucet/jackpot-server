@@ -30,7 +30,8 @@ type configuration struct {
 		Host        string `validate:"required"`
 		Username    string `validate:"required"`
 		Password    string `validate:"required"`
-		MinConfirms int    `validate:"required,min=1"`
+		MinConfirms int64  `validate:"required,min=1"`
+	} `validate:"required"`
 	Coin struct {
 		Type  string `validate:"required"`
 		Label string `validate:"required"`
@@ -67,7 +68,7 @@ func initConfig() {
 	config.Wallet.Host = viper.GetString("wallet_rpc_host")
 	config.Wallet.Username = viper.GetString("wallet_rpc_username")
 	config.Wallet.Password = viper.GetString("wallet_rpc_password")
-	config.Wallet.MinConfirms = viper.GetInt("wallet_min_confirms")
+	config.Wallet.MinConfirms = int64(viper.GetInt("wallet_min_confirms"))
 
 	config.Coin.Type = viper.GetString("coin_type")
 	config.Coin.Label = viper.GetString("coin_label")
