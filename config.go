@@ -2,6 +2,7 @@ package main
 
 import (
 	"reflect"
+	"time"
 
 	"gopkg.in/go-playground/validator.v8"
 
@@ -17,6 +18,10 @@ type graylog struct {
 }
 
 type configuration struct {
+	HTTP struct {
+		Address string `validate:"required"`
+		Mode    string `validate:"required,eq=release|eq=test|eq=debug"`
+	} `validate:"required"`
 	Log struct {
 		Level   string  `mapstructure:"level" validate:"required,eq=debug|eq=info|eq=warn|eq=error|eq=fatal|eq=panic"`
 		Graylog graylog `mapstructure:"graylog" validate:"required,dive"`
@@ -26,11 +31,19 @@ type configuration struct {
 		Username    string `validate:"required"`
 		Password    string `validate:"required"`
 		MinConfirms int    `validate:"required,min=1"`
+	Coin struct {
+		Type  string `validate:"required"`
+		Label string `validate:"required"`
+		TxURL string `validate:"required"`
 	} `validate:"required"`
 	DB struct {
 		DataSourceName string `validate:"required,dsn"`
 		MaxOpenConns   int    `validate:"required,min=1"`
 		MaxIdleConns   int    `validate:"required,min=1,ltefield=MaxOpenConns"`
+	} `validate:"required"`
+	Jackpot struct {
+		TransactionFee float64 `validate:"required,min=0,lt=1"`
+		Duration       time.Duration
 	} `validate:"required"`
 }
 
@@ -43,6 +56,9 @@ func initConfig() {
 
 	// See Viper doc, config is get in the following order
 	// override, flag, env, config file, key/value store, default
+	config.HTTP.Mode = viper.GetString("mode")
+	config.HTTP.Address = viper.GetString("address")
+
 	config.Log.Level = viper.GetString("log_level")
 	config.Log.Graylog.Address = viper.GetString("graylog_address")
 	config.Log.Graylog.Level = viper.GetString("graylog_level")
@@ -53,9 +69,16 @@ func initConfig() {
 	config.Wallet.Password = viper.GetString("wallet_rpc_password")
 	config.Wallet.MinConfirms = viper.GetInt("wallet_min_confirms")
 
+	config.Coin.Type = viper.GetString("coin_type")
+	config.Coin.Label = viper.GetString("coin_label")
+	config.Coin.TxURL = viper.GetString("coin_tx_url")
+
 	config.DB.DataSourceName = viper.GetString("db_dsn")
 	config.DB.MaxOpenConns = viper.GetInt("db_max_open_conns")
 	config.DB.MaxIdleConns = viper.GetInt("db_max_idle_conns")
+
+	config.Jackpot.TransactionFee = viper.GetFloat64("transaction_fee")
+	config.Jackpot.Duration = utils.Must(time.ParseDuration(viper.GetString("duration"))).(time.Duration)
 
 	// validate config
 	utils.Must(nil, validateConfiguration(config))
