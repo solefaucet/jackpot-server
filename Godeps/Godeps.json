@@ -115,9 +115,30 @@
 			"Rev": "5215b55f46b2b919f50a1df0eaa5886afe4e3b3d"
 		},
 		{
+			"ImportPath": "github.com/dustin/go-broadcast",
+			"Rev": "3bdf6d4a7164a50bc19d5f230e2981d87d2584f1"
+		},
+		{
+			"ImportPath": "github.com/gin-gonic/contrib/cors",
+			"Rev": "14f66d54cdb96059bafca98665bcc6d9df4951f2"
+		},
+		{
+			"ImportPath": "github.com/gin-gonic/gin",
+			"Comment": "v1.0rc1-219-g3d002e3",
+			"Rev": "3d002e382355cafc15d706b92899b1961d5b79e9"
+		},
+		{
 			"ImportPath": "github.com/go-sql-driver/mysql",
 			"Comment": "v1.2-171-g267b128",
 			"Rev": "267b128680c46286b9ca13475c3cca5de8f79bd7"
+		},
+		{
+			"ImportPath": "github.com/golang/protobuf/proto",
+			"Rev": "1111461c35931a806efe06a9a43ad52a24c608ff"
+		},
+		{
+			"ImportPath": "github.com/golang/protobuf/ptypes/any",
+			"Rev": "1111461c35931a806efe06a9a43ad52a24c608ff"
 		},
 		{
 			"ImportPath": "github.com/gopherjs/gopherjs/js",
@@ -157,8 +178,26 @@
 			"Rev": "c81f9d71af8f8cba1466501d30326b99a4e56c19"
 		},
 		{
+			"ImportPath": "github.com/manucorporat/sse",
+			"Rev": "ee05b128a739a0fb76c7ebd3ae4810c1de808d6d"
+		},
+		{
+			"ImportPath": "github.com/manucorporat/stats",
+			"Rev": "8f2d6ace262eba462e9beb552382c98be51d807b"
+		},
+		{
 			"ImportPath": "github.com/mitchellh/mapstructure",
 			"Rev": "d2dd0262208475919e1a362f675cfc0e7c10e905"
+		},
+		{
+			"ImportPath": "github.com/onsi/ginkgo",
+			"Comment": "v1.2.0-58-g16c3879",
+			"Rev": "16c38793d41b07a5f9ae77d573af7836a994bf27"
+		},
+		{
+			"ImportPath": "github.com/onsi/gomega",
+			"Comment": "v1.0-109-g82a02ec",
+			"Rev": "82a02eccf12c018071eef42fbb701c0db6f1e3db"
 		},
 		{
 			"ImportPath": "github.com/robfig/cron",
