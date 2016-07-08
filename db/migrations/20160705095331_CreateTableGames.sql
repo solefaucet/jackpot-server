@@ -17,9 +17,10 @@ CREATE TABLE `games` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 ALTER TABLE `games`
-ADD UNIQUE INDEX (`hash`),
-ADD UNIQUE INDEX (`height`),
 ADD UNIQUE INDEX (`game_of`),
+ADD UNIQUE INDEX (`height`, `hash`, `game_of`),
+ADD INDEX (`height`),
+ADD INDEX (`hash`),
 ADD INDEX (`created_at`),
 ADD INDEX (`address`),
 ADD INDEX (`tx_id`);
