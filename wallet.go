@@ -11,12 +11,11 @@ import (
 
 var (
 	blockHeightChan        = make(chan int64, 2)
-	defaultTime            = time.Time{}
-	previousBlockCreatedAt = defaultTime
+	previousBlockCreatedAt = time.Time{}
 )
 
 func initWork() {
-	go work()
+	go fetchAndSave()
 
 	// get latest block from db
 	block, err := storage.GetLatestBlock()
@@ -35,7 +34,7 @@ func initWork() {
 	blockHeightChan <- block.Height + 1
 }
 
-func work() {
+func fetchAndSave() {
 	for {
 		height := <-blockHeightChan
 		saveBlockAndTransactions(height)
@@ -43,7 +42,12 @@ func work() {
 }
 
 func saveBlockAndTransactions(height int64) {
+	var err error
 	defer func() {
+		if err != nil {
+			time.Sleep(time.Minute)
+		}
+
 		blockHeightChan <- height
 	}()
 
@@ -56,44 +60,57 @@ func saveBlockAndTransactions(height int64) {
 	bestBlock := height < 0
 	block, err := wallet.GetBlock(bestBlock, height)
 	if err == jerrors.ErrNoNewBlock {
-		time.Sleep(time.Minute)
 		entry.Info("no new block ahead")
 		return
 	}
 
 	if err != nil {
-		entry.WithError(err).Error("fail to get block from blockchain")
+		entry.WithField("error", err.Error()).Error("fail to get block from blockchain")
 		return
 	}
+
+	gameOf := block.BlockCreatedAt.Truncate(config.Jackpot.Duration)
+	entry.WithFields(logrus.Fields{
+		"previous_hash": block.PrevHash,
+		"height":        block.Height,
+		"game_of":       gameOf,
+	})
 
 	// get receive transactions
-	transactions, err := wallet.GetReceivedSince(block.PrevHash, config.Wallet.MinConfirms)
+	transactions, err := wallet.GetReceivedSince(block.PrevHash, block.Hash)
 	if err != nil {
-		entry.WithField("hash", block.PrevHash).WithError(err).Error("fail to list transactions from blockchain")
+		entry.WithField("error", err.Error()).Error("fail to list transactions from blockchain")
 		return
 	}
 
-	// check if it's time to figure out the winner
-	rt := previousBlockCreatedAt.Add(time.Hour).Truncate(time.Hour)
-	if previousBlockCreatedAt != defaultTime && previousBlockCreatedAt.Before(rt) && block.BlockCreatedAt.After(rt) {
-		// TODO:
-		// 1. find the winner address
-		// 2. send coin, get tx_id
-		// 3. update games, set address, win_amount, total_amount, fee, tx_id
+	// check if it's time to find out the winner
+	previousGameOf := previousBlockCreatedAt.Truncate(config.Jackpot.Duration)
+	var updatedGame *models.Game
+	if previousGameOf.Add(config.Jackpot.Duration).Equal(gameOf) {
+		updatedGame = &models.Game{
+			Hash:   block.Hash,
+			Height: block.Height,
+			GameOf: previousGameOf,
+		}
 	}
 
 	// save block, transactions
-	if err := storage.SaveBlockAndTransactions(walletBlockToModelBlock(block), walletTxsToModelTxs(transactions)); err != nil {
-		entry.WithField("hash", block.PrevHash).WithError(err).Error("fail to save block and transactions to db")
+	if err := storage.SaveBlockAndTransactions(
+		gameOf,
+		walletBlockToModelBlock(block),
+		walletTxsToModelTxs(gameOf, transactions),
+		updatedGame,
+	); err != nil {
+		entry.WithField("error", err.Error()).Error("fail to save block and transactions to db")
 		return
 	}
 
 	entry.Info("save block and transactions successfully")
-	height++
+	height = block.Height + 1
 	previousBlockCreatedAt = block.BlockCreatedAt
 }
 
-func walletTxsToModelTxs(txs []w.Transaction) []models.Transaction {
+func walletTxsToModelTxs(gameOf time.Time, txs []w.Transaction) []models.Transaction {
 	transactions := make([]models.Transaction, len(txs))
 	for i, v := range txs {
 		transactions[i] = models.Transaction{
@@ -101,6 +118,8 @@ func walletTxsToModelTxs(txs []w.Transaction) []models.Transaction {
 			Amount:         v.Amount,
 			TransactionID:  v.TransactionID,
 			Hash:           v.Hash,
+			Confirmations:  v.Confirmations,
+			GameOf:         gameOf,
 			BlockCreatedAt: v.BlockCreatedAt,
 		}
 	}
@@ -111,6 +130,9 @@ func walletBlockToModelBlock(blockchainBlock *w.Block) models.Block {
 	return models.Block{
 		Hash:           blockchainBlock.Hash,
 		Height:         blockchainBlock.Height,
-		BlockCreatedAt: blockchainBlock.BlockCreatedAt.UTC(),
+		BlockCreatedAt: blockchainBlock.BlockCreatedAt,
+	}
+}
+
 	}
 }
