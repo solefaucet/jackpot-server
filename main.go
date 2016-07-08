@@ -8,7 +8,6 @@ import (
 	"runtime"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/robfig/cron"
 	"github.com/solefaucet/jackpot-server/models"
 	s "github.com/solefaucet/jackpot-server/services/storage"
 	"github.com/solefaucet/jackpot-server/services/storage/mysql"
@@ -64,9 +63,6 @@ func initService() {
 		),
 	).(w.Wallet)
 
-	// init cronjob
-	initCronjob()
-
 	// MOST IMPORTANT FUNCTION HERE!!!
 	initWork()
 }
@@ -86,11 +82,6 @@ func main() {
 	logrus.WithFields(logrus.Fields{
 		"event": models.LogEventServiceStateChanged,
 	}).Info("service up")
-}
-
-func initCronjob() {
-	c := cron.New()
-	c.Start()
 }
 
 func catch(then func()) {
