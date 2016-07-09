@@ -16,9 +16,9 @@ var (
 )
 
 func initWork() {
-	go fetchAndSave()
-	go processAndUpdate()
+	go fetchBlocksJob()
 	go updateConfirmationsJob()
+	go processGamesJob()
 
 	// get latest block from db
 	block, err := storage.GetLatestBlock()
@@ -37,14 +37,13 @@ func initWork() {
 	blockHeightChan <- block.Height + 1
 }
 
-func fetchAndSave() {
+func fetchBlocksJob() {
 	for {
 		height := <-blockHeightChan
-		saveBlockAndTransactions(height)
+		fetchBlocks(height)
 	}
 }
 
-func processAndUpdate() {
 func updateConfirmationsJob() {
 	for {
 		updateConfirmations()
@@ -52,13 +51,14 @@ func updateConfirmationsJob() {
 	}
 }
 
+func processGamesJob() {
 	for {
 		processGames()
 		time.Sleep(time.Minute)
 	}
 }
 
-func saveBlockAndTransactions(height int64) {
+func fetchBlocks(height int64) {
 	var err error
 	defer func() {
 		if err != nil {
@@ -206,60 +206,47 @@ func processGames() {
 			return
 		}
 
-		processingNeeded := true
-		for _, transaction := range transactions {
-			confirmations, err := wallet.GetConfirmationsFromTxID(transaction.TransactionID)
-			if err != nil {
-				entry.WithFields(logrus.Fields{
-					"error": err.Error(),
-					"tx_id": transaction.TransactionID,
-				}).Error("fail to get confirmations by tx id")
-				return
-			}
-
-			if config.Wallet.MinConfirms > confirmations {
-				processingNeeded = false
-			}
-
-			if err := storage.UpdateTransactionConfirmationByID(transaction.ID, confirmations); err != nil {
-				entry.WithFields(logrus.Fields{
-					"error": err.Error(),
-					"tx_id": transaction.TransactionID,
-				}).Error("fail to update transaction confirmation")
-				return
-			}
+		if !allTransactionsConfirmed(transactions) {
+			continue
 		}
 
-		if processingNeeded {
-			winnerAddress, transactionID, winAmount, fee, err := findWinnerAndSendCoins(game.GameOf, game.Hash)
-			if err != nil {
-				entry.WithFields(logrus.Fields{
-					"game_of": game.GameOf,
-					"hash":    game.Hash,
-					"error":   err.Error(),
-				}).Error("fail to find winner and send coins")
-				return
-			}
+		winnerAddress, transactionID, winAmount, fee, err := findWinnerAndSendCoins(game.GameOf, game.Hash)
+		if err != nil {
+			entry.WithFields(logrus.Fields{
+				"game_of": game.GameOf,
+				"hash":    game.Hash,
+				"error":   err.Error(),
+			}).Error("fail to find winner and send coins")
+			return
+		}
 
-			g := models.Game{
-				Address:       winnerAddress,
-				WinAmount:     winAmount,
-				Fee:           fee,
-				TransactionID: transactionID,
-				GameOf:        game.GameOf,
-			}
-			if err := storage.UpdateGameToEndedStatus(g); err != nil {
-				entry.WithFields(logrus.Fields{
-					"winner_address": winnerAddress,
-					"win_amount":     winAmount,
-					"fee":            fee,
-					"tx_id":          transactionID,
-					"game_of":        game.GameOf,
-				}).Panic("fail to update game status to ended")
-				return
-			}
+		g := models.Game{
+			Address:       winnerAddress,
+			WinAmount:     winAmount,
+			Fee:           fee,
+			TransactionID: transactionID,
+			GameOf:        game.GameOf,
+		}
+		if err := storage.UpdateGameToEndedStatus(g); err != nil {
+			entry.WithFields(logrus.Fields{
+				"winner_address": winnerAddress,
+				"win_amount":     winAmount,
+				"fee":            fee,
+				"tx_id":          transactionID,
+				"game_of":        game.GameOf,
+			}).Panic("fail to update game status to ended")
+			return
 		}
 	}
+}
+
+func allTransactionsConfirmed(transactions []models.Transaction) bool {
+	for _, transaction := range transactions {
+		if config.Wallet.MinConfirms > transaction.Confirmations {
+			return false
+		}
+	}
+	return true
 }
 
 func findWinnerAndSendCoins(gameOf time.Time, hash string) (winnerAddress, transactionID string, winAmount, fee float64, err error) {
