@@ -1,6 +1,8 @@
 package mysql
 
 import (
+	"time"
+
 	_ "github.com/go-sql-driver/mysql" // is needed for mysql driver registeration
 	"github.com/jmoiron/sqlx"
 	"github.com/solefaucet/jackpot-server/models"
@@ -46,13 +48,29 @@ func (s Storage) withTx(f func(*sqlx.Tx) error) error {
 }
 
 // SaveBlockAndTransactions save block and transactions
-func (s Storage) SaveBlockAndTransactions(block models.Block, transactions []models.Transaction) error {
+func (s Storage) SaveBlockAndTransactions(gameOf time.Time, block models.Block, transactions []models.Transaction, game *models.Game) error {
 	return s.withTx(func(tx *sqlx.Tx) error {
+		// save block
 		if err := saveBlock(tx, block); err != nil {
 			return err
 		}
 
+		// save transactions
 		if err := saveTransactions(tx, transactions); err != nil {
+			return err
+		}
+
+		// update or insert game
+		totalAmount := 0.0
+		for _, v := range transactions {
+			totalAmount += v.Amount
+		}
+		if err := upsertGame(tx, gameOf, block.Hash, block.Height, totalAmount); err != nil {
+			return err
+		}
+
+		// update previous game to processing status if needed
+		if err := updateGameToProcessingStatus(tx, game); err != nil {
 			return err
 		}
 

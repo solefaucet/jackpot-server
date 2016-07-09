@@ -8,7 +8,9 @@ import (
 	"runtime"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/robfig/cron"
+	"github.com/gin-gonic/gin"
+	"github.com/solefaucet/jackpot-server/handlers/v1"
+	"github.com/solefaucet/jackpot-server/middlewares"
 	"github.com/solefaucet/jackpot-server/models"
 	s "github.com/solefaucet/jackpot-server/services/storage"
 	"github.com/solefaucet/jackpot-server/services/storage/mysql"
@@ -64,15 +66,39 @@ func initService() {
 		),
 	).(w.Wallet)
 
-	// init cronjob
-	initCronjob()
-
 	// MOST IMPORTANT FUNCTION HERE!!!
 	initWork()
 }
 
 func main() {
 	initService()
+
+	gin.SetMode(config.HTTP.Mode)
+	router := gin.New()
+
+	// globally use middlewares
+	router.Use(
+		middlewares.RecoveryWithWriter(os.Stderr),
+		middlewares.Logger(),
+		middlewares.CORS(),
+		gin.ErrorLogger(),
+	)
+
+	// version 1 api endpoints
+	v1Endpoints := router.Group("/v1")
+	v1Endpoints.GET(
+		"/games",
+		v1.Games(
+			storage.GetGamesWithin,
+			storage.GetTransactionsWithin,
+			getDestAddress,
+			config.Jackpot.Duration,
+			config.Jackpot.TransactionFee,
+			config.Coin.TxURL,
+			config.Coin.Type,
+			config.Coin.Label,
+		),
+	)
 
 	// on service stop, log and maybe do some cleanup jobs
 	onServiceStop := func() {
@@ -84,13 +110,12 @@ func main() {
 	go catch(onServiceStop)
 
 	logrus.WithFields(logrus.Fields{
-		"event": models.LogEventServiceStateChanged,
+		"event":        models.LogEventServiceStateChanged,
+		"http_address": config.HTTP.Address,
 	}).Info("service up")
-}
-
-func initCronjob() {
-	c := cron.New()
-	c.Start()
+	if err := router.Run(config.HTTP.Address); err != nil {
+		logrus.WithError(err).Fatal("failed to start service")
+	}
 }
 
 func catch(then func()) {
@@ -119,4 +144,8 @@ func safeFuncWrapper(f func()) func() {
 		}()
 		f()
 	}
+}
+
+func getDestAddress() string {
+	return utils.Must(wallet.GetDestAddress()).(string)
 }
