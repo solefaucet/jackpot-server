@@ -13,6 +13,7 @@ type Storage interface {
 
 	// transaction
 	GetTransactionsWithin(start, end time.Time) ([]models.Transaction, error)
+	GetUnconfirmedTransactions(confirmations int64) ([]models.Transaction, error)
 	GetTransactionsByGameOf(gameOf time.Time) ([]models.Transaction, error)
 	UpdateTransactionConfirmationByID(id int64, confirmations int64) error
 

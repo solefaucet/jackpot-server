@@ -18,6 +18,7 @@ var (
 func initWork() {
 	go fetchAndSave()
 	go processAndUpdate()
+	go updateConfirmationsJob()
 
 	// get latest block from db
 	block, err := storage.GetLatestBlock()
@@ -44,6 +45,13 @@ func fetchAndSave() {
 }
 
 func processAndUpdate() {
+func updateConfirmationsJob() {
+	for {
+		updateConfirmations()
+		time.Sleep(time.Minute)
+	}
+}
+
 	for {
 		processGames()
 		time.Sleep(time.Minute)
@@ -140,6 +148,40 @@ func walletBlockToModelBlock(blockchainBlock *w.Block) models.Block {
 		Hash:           blockchainBlock.Hash,
 		Height:         blockchainBlock.Height,
 		BlockCreatedAt: blockchainBlock.BlockCreatedAt,
+	}
+}
+
+func updateConfirmations() {
+	minConfirmations := config.Wallet.MinConfirms
+
+	entry := logrus.WithFields(logrus.Fields{
+		"event":             models.LogEventUpdateConfirmations,
+		"min_confirmations": minConfirmations,
+	})
+
+	transactions, err := storage.GetUnconfirmedTransactions(minConfirmations)
+	if err != nil {
+		entry.WithField("error", err.Error()).Error("fail to get unconfirmed transactions")
+		return
+	}
+
+	for _, transaction := range transactions {
+		confirmations, err := wallet.GetConfirmationsFromTxID(transaction.TransactionID)
+		if err != nil {
+			entry.WithFields(logrus.Fields{
+				"error": err.Error(),
+				"tx_id": transaction.TransactionID,
+			}).Error("fail to get confirmations by tx id")
+			return
+		}
+
+		if err := storage.UpdateTransactionConfirmationByID(transaction.ID, confirmations); err != nil {
+			entry.WithFields(logrus.Fields{
+				"error": err.Error(),
+				"tx_id": transaction.TransactionID,
+			}).Error("fail to update transaction confirmation")
+			return
+		}
 	}
 }
 

@@ -28,6 +28,13 @@ func (s Storage) GetTransactionsWithin(start, end time.Time) ([]models.Transacti
 	return transactions, err
 }
 
+// GetUnconfirmedTransactions gets all unconfirmed transactions
+func (s Storage) GetUnconfirmedTransactions(confirmations int64) ([]models.Transaction, error) {
+	transactions := []models.Transaction{}
+	err := s.db.Select(&transactions, "SELECT * FROM `transactions` WHERE `confirmations` < ? ORDER BY `block_created_at` DESC", confirmations)
+	return transactions, err
+}
+
 // GetTransactionsByGameOf gets all transactions, filter by game_of
 func (s Storage) GetTransactionsByGameOf(gameOf time.Time) ([]models.Transaction, error) {
 	transactions := []models.Transaction{}
