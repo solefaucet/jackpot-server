@@ -11,11 +11,13 @@ import (
 )
 
 type gamesResponse struct {
-	DestAddress   string         `json:"dest_address"`
-	QRCode        string         `json:"qrcode"`
-	JackpotAmount float64        `json:"jackpot_amout"`
-	NextGameTime  time.Time      `json:"next_game_time"`
-	Games         []gameResponse `json:"games"`
+	DestAddress    string         `json:"dest_address"`
+	DestAddressURL string         `json:"dest_address_url"`
+	Duration       int64          `json:"duration"`
+	QRCode         string         `json:"qrcode"`
+	JackpotAmount  float64        `json:"jackpot_amout"`
+	NextGameTime   time.Time      `json:"next_game_time"`
+	Games          []gameResponse `json:"games"`
 }
 
 type gameResponse struct {
@@ -45,7 +47,7 @@ func Games(
 	destAddress string,
 	duration time.Duration,
 	fee float64,
-	blockchainTxURL, coinType, label string,
+	blockchainTxURL, blockchainAddressURL, coinType, label string,
 ) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		p := gamePayload{}
@@ -78,11 +80,13 @@ func Games(
 		gs := constructGamesResponse(games, transactionMap, fee, blockchainTxURL)
 
 		response := gamesResponse{
-			Games:         gs,
-			DestAddress:   destAddress,
-			JackpotAmount: jackpotAmount,
-			NextGameTime:  now.Truncate(duration).Add(duration),
-			QRCode:        fmt.Sprintf("%s:%s?label=%s", coinType, destAddress, label),
+			Games:          gs,
+			Duration:       duration.Nanoseconds() / 1e9,
+			DestAddress:    destAddress,
+			DestAddressURL: blockchainAddressURL + destAddress,
+			JackpotAmount:  jackpotAmount,
+			NextGameTime:   now.Truncate(duration).Add(duration),
+			QRCode:         fmt.Sprintf("%s:%s?label=%s", coinType, destAddress, label),
 		}
 
 		// response
@@ -123,7 +127,7 @@ func constructTransactionMap(transactions []models.Transaction, duration time.Du
 
 func calculateWinProbability(recordMap map[string]*record, totalAmount float64) map[string]*record {
 	for _, r := range recordMap {
-		r.WinProbability = r.Amount / totalAmount
+		r.WinProbability = r.Amount / totalAmount * 100
 	}
 	return recordMap
 }

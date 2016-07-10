@@ -33,9 +33,10 @@ type configuration struct {
 		MinConfirms int64  `validate:"required,min=1"`
 	} `validate:"required"`
 	Coin struct {
-		Type  string `validate:"required"`
-		Label string `validate:"required"`
-		TxURL string `validate:"required"`
+		Type       string `validate:"required"`
+		Label      string `validate:"required"`
+		TxURL      string `validate:"required"`
+		AddressURL string `validate:"required"`
 	} `validate:"required"`
 	DB struct {
 		DataSourceName string `validate:"required,dsn"`
@@ -74,6 +75,7 @@ func initConfig() {
 	config.Coin.Type = viper.GetString("coin_type")
 	config.Coin.Label = viper.GetString("coin_label")
 	config.Coin.TxURL = viper.GetString("coin_tx_url")
+	config.Coin.AddressURL = viper.GetString("coin_address_url")
 
 	config.DB.DataSourceName = viper.GetString("db_dsn")
 	config.DB.MaxOpenConns = viper.GetInt("db_max_open_conns")
