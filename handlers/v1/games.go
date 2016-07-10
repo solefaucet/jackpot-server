@@ -13,6 +13,7 @@ import (
 type gamesResponse struct {
 	DestAddress    string         `json:"dest_address"`
 	DestAddressURL string         `json:"dest_address_url"`
+	Duration       int64          `json:"duration"`
 	QRCode         string         `json:"qrcode"`
 	JackpotAmount  float64        `json:"jackpot_amout"`
 	NextGameTime   time.Time      `json:"next_game_time"`
@@ -80,6 +81,7 @@ func Games(
 
 		response := gamesResponse{
 			Games:          gs,
+			Duration:       duration.Nanoseconds() / 1e9,
 			DestAddress:    destAddress,
 			DestAddressURL: blockchainAddressURL + destAddress,
 			JackpotAmount:  jackpotAmount,
