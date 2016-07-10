@@ -42,7 +42,7 @@ type gamePayload struct {
 func Games(
 	getGamesWithin dependencyGetGamesWithin,
 	getTransactionsWithin dependencyGetTransactionsWithin,
-	getDestAddress func() string,
+	destAddress string,
 	duration time.Duration,
 	fee float64,
 	blockchainTxURL, coinType, label string,
@@ -77,7 +77,6 @@ func Games(
 		transactionMap := constructTransactionMap(transactions, duration)
 		gs := constructGamesResponse(games, transactionMap, fee, blockchainTxURL)
 
-		destAddress := getDestAddress()
 		response := gamesResponse{
 			Games:         gs,
 			DestAddress:   destAddress,
