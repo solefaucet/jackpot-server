@@ -91,7 +91,7 @@ func main() {
 		v1.Games(
 			storage.GetGamesWithin,
 			storage.GetTransactionsWithin,
-			getDestAddress,
+			config.Jackpot.DestAddress,
 			config.Jackpot.Duration,
 			config.Jackpot.TransactionFee,
 			config.Coin.TxURL,

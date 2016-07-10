@@ -43,6 +43,7 @@ type configuration struct {
 		MaxIdleConns   int    `validate:"required,min=1,ltefield=MaxOpenConns"`
 	} `validate:"required"`
 	Jackpot struct {
+		DestAddress    string  `validate:"required"`
 		TransactionFee float64 `validate:"required,min=0,lt=1"`
 		Duration       time.Duration
 	} `validate:"required"`
@@ -78,6 +79,7 @@ func initConfig() {
 	config.DB.MaxOpenConns = viper.GetInt("db_max_open_conns")
 	config.DB.MaxIdleConns = viper.GetInt("db_max_idle_conns")
 
+	config.Jackpot.DestAddress = viper.GetString("dest_address")
 	config.Jackpot.TransactionFee = viper.GetFloat64("transaction_fee")
 	config.Jackpot.Duration = utils.Must(time.ParseDuration(viper.GetString("duration"))).(time.Duration)
 
