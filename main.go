@@ -95,6 +95,7 @@ func main() {
 			config.Jackpot.Duration,
 			config.Jackpot.TransactionFee,
 			config.Coin.TxURL,
+			config.Coin.AddressURL,
 			config.Coin.Type,
 			config.Coin.Label,
 		),

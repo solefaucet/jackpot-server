@@ -11,11 +11,12 @@ import (
 )
 
 type gamesResponse struct {
-	DestAddress   string         `json:"dest_address"`
-	QRCode        string         `json:"qrcode"`
-	JackpotAmount float64        `json:"jackpot_amout"`
-	NextGameTime  time.Time      `json:"next_game_time"`
-	Games         []gameResponse `json:"games"`
+	DestAddress    string         `json:"dest_address"`
+	DestAddressURL string         `json:"dest_address_url"`
+	QRCode         string         `json:"qrcode"`
+	JackpotAmount  float64        `json:"jackpot_amout"`
+	NextGameTime   time.Time      `json:"next_game_time"`
+	Games          []gameResponse `json:"games"`
 }
 
 type gameResponse struct {
@@ -45,7 +46,7 @@ func Games(
 	destAddress string,
 	duration time.Duration,
 	fee float64,
-	blockchainTxURL, coinType, label string,
+	blockchainTxURL, blockchainAddressURL, coinType, label string,
 ) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		p := gamePayload{}
@@ -78,11 +79,12 @@ func Games(
 		gs := constructGamesResponse(games, transactionMap, fee, blockchainTxURL)
 
 		response := gamesResponse{
-			Games:         gs,
-			DestAddress:   destAddress,
-			JackpotAmount: jackpotAmount,
-			NextGameTime:  now.Truncate(duration).Add(duration),
-			QRCode:        fmt.Sprintf("%s:%s?label=%s", coinType, destAddress, label),
+			Games:          gs,
+			DestAddress:    destAddress,
+			DestAddressURL: blockchainAddressURL + destAddress,
+			JackpotAmount:  jackpotAmount,
+			NextGameTime:   now.Truncate(duration).Add(duration),
+			QRCode:         fmt.Sprintf("%s:%s?label=%s", coinType, destAddress, label),
 		}
 
 		// response
