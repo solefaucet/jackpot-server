@@ -127,7 +127,7 @@ func constructTransactionMap(transactions []models.Transaction, duration time.Du
 
 func calculateWinProbability(recordMap map[string]*record, totalAmount float64) map[string]*record {
 	for _, r := range recordMap {
-		r.WinProbability = r.Amount / totalAmount
+		r.WinProbability = r.Amount / totalAmount * 100
 	}
 	return recordMap
 }
