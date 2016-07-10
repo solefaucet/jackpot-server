@@ -14,7 +14,7 @@ import (
 
 func TestGames(t *testing.T) {
 	Convey("Given games handler", t, func() {
-		handler := Games(nil, nil, "", time.Minute, 0, "", "", "")
+		handler := Games(nil, nil, "", time.Minute, 0, "", "", "", "")
 
 		Convey("When request games handler with incorrect parameter", func() {
 			route := "/games"
@@ -31,7 +31,7 @@ func TestGames(t *testing.T) {
 
 	Convey("Given games handler with errored get games within", t, func() {
 		getGamesWithin := mockDependencyGetGamesWithin(nil, fmt.Errorf(""))
-		handler := Games(getGamesWithin, nil, "", time.Minute, 0, "", "", "")
+		handler := Games(getGamesWithin, nil, "", time.Minute, 0, "", "", "", "")
 
 		Convey("When request games handler", func() {
 			route := "/games"
@@ -49,7 +49,7 @@ func TestGames(t *testing.T) {
 	Convey("Given games handler with errored get transactions within", t, func() {
 		getGamesWithin := mockDependencyGetGamesWithin(nil, nil)
 		getTransactionsWithin := mockDependencyGetTransactionsWithin(nil, fmt.Errorf(""))
-		handler := Games(getGamesWithin, getTransactionsWithin, "", time.Minute, 0, "", "", "")
+		handler := Games(getGamesWithin, getTransactionsWithin, "", time.Minute, 0, "", "", "", "")
 
 		Convey("When request games handler", func() {
 			route := "/games"
@@ -67,7 +67,7 @@ func TestGames(t *testing.T) {
 	Convey("Given games handler with everything correct", t, func() {
 		getGamesWithin := mockDependencyGetGamesWithin(nil, nil)
 		getTransactionsWithin := mockDependencyGetTransactionsWithin(nil, nil)
-		handler := Games(getGamesWithin, getTransactionsWithin, "", time.Minute, 0, "", "", "")
+		handler := Games(getGamesWithin, getTransactionsWithin, "", time.Minute, 0, "", "", "", "")
 
 		Convey("When request games handler", func() {
 			route := "/games"
@@ -161,7 +161,7 @@ func TestCalculateWinProbability(t *testing.T) {
 	}
 	calculateWinProbability(recordMap, 100)
 
-	expected := 0.0999
+	expected := 9.99
 	if actual := recordMap["key"].WinProbability; actual != expected {
 		t.Errorf("calculate win probability expected %v but get %v", expected, actual)
 	}
