@@ -70,7 +70,7 @@ func (s Storage) SaveBlockAndTransactions(gameOf time.Time, block models.Block, 
 		}
 
 		// update previous game to processing status if needed
-		if err := updateGameToProcessingStatus(tx, game); err != nil {
+		if err := updateGameToDrawingNeededStatus(tx, game); err != nil {
 			return err
 		}
 
