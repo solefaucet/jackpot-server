@@ -18,7 +18,7 @@ var (
 func initWork() {
 	go fetchBlocksJob()
 	go updateConfirmationsJob()
-	go processGamesJob()
+	go drawGamesJob()
 
 	// get latest block from db
 	block, err := storage.GetLatestBlock()
@@ -51,9 +51,9 @@ func updateConfirmationsJob() {
 	}
 }
 
-func processGamesJob() {
+func drawGamesJob() {
 	for {
-		processGames()
+		drawGames()
 		time.Sleep(time.Minute)
 	}
 }
@@ -185,14 +185,14 @@ func updateConfirmations() {
 	}
 }
 
-func processGames() {
+func drawGames() {
 	entry := logrus.WithFields(logrus.Fields{
-		"event": models.LogEventProcessGames,
+		"event": models.LogEventDrawGames,
 	})
 
-	games, err := storage.GetProcessingGames()
+	games, err := storage.GetDrawingNeededGames()
 	if err != nil {
-		entry.WithField("error", err.Error()).Error("fail to get processing games")
+		entry.WithField("error", err.Error()).Error("fail to get drawing needed games")
 		return
 	}
 

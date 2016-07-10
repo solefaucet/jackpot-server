@@ -4,9 +4,9 @@ import "time"
 
 // game status
 const (
-	GameStatusPending    = "pending"
-	GameStatusProcessing = "processing"
-	GameStatusEnded      = "ended"
+	GameStatusPending       = "pending"
+	GameStatusDrawingNeeded = "drawing needed"
+	GameStatusEnded         = "ended"
 )
 
 // Game model

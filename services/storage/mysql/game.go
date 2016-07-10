@@ -23,19 +23,19 @@ func upsertGame(tx *sqlx.Tx, gameOf time.Time, hash string, height int64, totalA
 	return nil
 }
 
-func updateGameToProcessingStatus(tx *sqlx.Tx, game *models.Game) error {
+func updateGameToDrawingNeededStatus(tx *sqlx.Tx, game *models.Game) error {
 	if game == nil {
 		return nil
 	}
 
 	sql := "UPDATE `games` SET `hash` = ?, `height` = ?, `status` = ? WHERE `game_of` = ? AND `status` = ?"
-	result, err := tx.Exec(sql, game.Hash, game.Height, models.GameStatusProcessing, game.GameOf, models.GameStatusPending)
+	result, err := tx.Exec(sql, game.Hash, game.Height, models.GameStatusDrawingNeeded, game.GameOf, models.GameStatusPending)
 	if err != nil {
-		return fmt.Errorf("update game to processing status error: %#v", err)
+		return fmt.Errorf("update game to drawing needed status error: %#v", err)
 	}
 
 	if affect, _ := result.RowsAffected(); affect != 1 {
-		return fmt.Errorf("update game to processing status affected row not 1 but %v", affect)
+		return fmt.Errorf("update game to drawing needed status affected row not 1 but %v", affect)
 	}
 
 	return nil
@@ -48,17 +48,17 @@ func (s Storage) GetGamesWithin(start, end time.Time) ([]models.Game, error) {
 	return games, err
 }
 
-// GetProcessingGames gets all pending games
-func (s Storage) GetProcessingGames() ([]models.Game, error) {
+// GetDrawingNeededGames gets all drawing games
+func (s Storage) GetDrawingNeededGames() ([]models.Game, error) {
 	games := []models.Game{}
-	err := s.db.Select(&games, "SELECT * FROM `games` WHERE `status` = ? ORDER BY `game_of` ASC", models.GameStatusProcessing)
+	err := s.db.Select(&games, "SELECT * FROM `games` WHERE `status` = ? ORDER BY `game_of` ASC", models.GameStatusDrawingNeeded)
 	return games, err
 }
 
 // UpdateGameToEndedStatus updates game status to ended
 func (s Storage) UpdateGameToEndedStatus(game models.Game) error {
 	sql := "UPDATE `games` SET `address` = ?, `win_amount` = ?, `fee` = ?, `tx_id` = ?, `status` = ? WHERE `game_of` = ? AND `status` = ?"
-	result, err := s.db.Exec(sql, game.Address, game.WinAmount, game.Fee, game.TransactionID, models.GameStatusEnded, game.GameOf, models.GameStatusProcessing)
+	result, err := s.db.Exec(sql, game.Address, game.WinAmount, game.Fee, game.TransactionID, models.GameStatusEnded, game.GameOf, models.GameStatusDrawingNeeded)
 	if err != nil {
 		return fmt.Errorf("update game to ended status error: %#v", err)
 	}

@@ -19,7 +19,7 @@ type Storage interface {
 
 	// game
 	GetGamesWithin(start, end time.Time) ([]models.Game, error)
-	GetProcessingGames() ([]models.Game, error)
+	GetDrawingNeededGames() ([]models.Game, error)
 	UpdateGameToEndedStatus(models.Game) error
 
 	// batch
