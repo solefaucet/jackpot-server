@@ -550,10 +550,8 @@ func (r FutureSendFromResult) Receive() (*wire.ShaHash, error) {
 // returned instance.
 //
 // See SendFrom for the blocking version and more details.
-func (c *Client) SendFromAsync(fromAccount string, toAddress btcutil.Address, amount btcutil.Amount) FutureSendFromResult {
-	addr := toAddress.EncodeAddress()
-	cmd := btcjson.NewSendFromCmd(fromAccount, addr, amount.ToBTC(), nil,
-		nil, nil)
+func (c *Client) SendFromAsync(fromAccount string, toAddress string, amount float64) FutureSendFromResult {
+	cmd := btcjson.NewSendFromCmd(fromAccount, toAddress, amount, nil, nil, nil)
 	return c.sendCmd(cmd)
 }
 
@@ -565,7 +563,7 @@ func (c *Client) SendFromAsync(fromAccount string, toAddress btcutil.Address, am
 //
 // NOTE: This function requires to the wallet to be unlocked.  See the
 // WalletPassphrase function for more details.
-func (c *Client) SendFrom(fromAccount string, toAddress btcutil.Address, amount btcutil.Amount) (*wire.ShaHash, error) {
+func (c *Client) SendFrom(fromAccount string, toAddress string, amount float64) (*wire.ShaHash, error) {
 	return c.SendFromAsync(fromAccount, toAddress, amount).Receive()
 }
 
