@@ -36,14 +36,14 @@ type record struct {
 }
 
 type gamePayload struct {
-	Limit  time.Duration `form:"limit" binding:"required,min=1,max=10"`
-	Offset time.Duration `form:"offset" binding:"omitempty,min=0"`
+	Limit  int64 `form:"limit" binding:"required,min=1,max=10"`
+	Offset int64 `form:"offset" binding:"omitempty,min=0"`
 }
 
 // Games handler
 func Games(
-	getGamesWithin dependencyGetGamesWithin,
-	getTransactionsWithin dependencyGetTransactionsWithin,
+	getGames dependencyGetGames,
+	getTransactionsByGameOfs dependencyGetTransactionsByGameOfs,
 	destAddress string,
 	duration time.Duration,
 	fee float64,
@@ -57,26 +57,23 @@ func Games(
 
 		// get current jackpot amount
 		now := time.Now()
-		jackpotAmount := getCurrentJackpotAmount(getGamesWithin, now.Truncate(duration), now.Truncate(duration).Add(duration), fee)
+		jackpotAmount := getCurrentJackpotAmount(getGames, fee)
 
 		// get games and transactions
-		end := now.Truncate(duration).Add(duration).Add(-duration * p.Offset)
-		start := end.Add(-duration * p.Limit)
-
-		games, err := getGamesWithin(start, end)
+		games, err := getGames(p.Limit, p.Offset)
 		if err != nil {
 			c.AbortWithError(http.StatusInternalServerError, err)
 			return
 		}
 
-		transactions, err := getTransactionsWithin(start, end)
+		transactions, err := getTransactionsByGameOfs(gameOfs(games)...)
 		if err != nil {
 			c.AbortWithError(http.StatusInternalServerError, err)
 			return
 		}
 
 		// parse result
-		transactionMap := constructTransactionMap(transactions, duration)
+		transactionMap := constructTransactionMap(transactions)
 		gs := constructGamesResponse(games, transactionMap, fee, blockchainTxURL)
 
 		response := gamesResponse{
@@ -94,8 +91,16 @@ func Games(
 	}
 }
 
-func getCurrentJackpotAmount(getGamesWithin dependencyGetGamesWithin, start, end time.Time, fee float64) float64 {
-	games, err := getGamesWithin(start, end)
+func gameOfs(games []models.Game) []time.Time {
+	gameOfs := make([]time.Time, len(games))
+	for i := range games {
+		gameOfs[i] = games[i].GameOf
+	}
+	return gameOfs
+}
+
+func getCurrentJackpotAmount(getGames dependencyGetGames, fee float64) float64 {
+	games, err := getGames(1, 0)
 	if err != nil {
 		return 0.0
 	}
@@ -107,20 +112,20 @@ func getCurrentJackpotAmount(getGamesWithin dependencyGetGamesWithin, start, end
 	return 0.0
 }
 
-func constructTransactionMap(transactions []models.Transaction, duration time.Duration) map[int64]map[string]*record {
-	transactionMap := make(map[int64]map[string]*record)
+func constructTransactionMap(transactions []models.Transaction) map[time.Time]map[string]*record {
+	transactionMap := make(map[time.Time]map[string]*record)
 	for _, v := range transactions {
-		timestamp := v.BlockCreatedAt.Truncate(duration).Unix()
-		if _, ok := transactionMap[timestamp]; !ok {
-			transactionMap[timestamp] = make(map[string]*record)
+		t := v.GameOf
+		if _, ok := transactionMap[t]; !ok {
+			transactionMap[t] = make(map[string]*record)
 		}
-		if _, ok := transactionMap[timestamp][v.Address]; !ok {
-			transactionMap[timestamp][v.Address] = &record{
+		if _, ok := transactionMap[t][v.Address]; !ok {
+			transactionMap[t][v.Address] = &record{
 				Confirmations: v.Confirmations,
 				ReceivedAt:    v.BlockCreatedAt,
 			}
 		}
-		transactionMap[timestamp][v.Address].Amount += v.Amount
+		transactionMap[t][v.Address].Amount += v.Amount
 	}
 	return transactionMap
 }
@@ -140,7 +145,7 @@ func paymentProofWithTxID(url, txid string) string {
 	return paymentProofURL
 }
 
-func constructGamesResponse(games []models.Game, transactionMap map[int64]map[string]*record, fee float64, blockchainTxURL string) []gameResponse {
+func constructGamesResponse(games []models.Game, transactionMap map[time.Time]map[string]*record, fee float64, blockchainTxURL string) []gameResponse {
 	response := make([]gameResponse, len(games))
 	for i, v := range games {
 		response[i] = gameResponse{
@@ -148,7 +153,7 @@ func constructGamesResponse(games []models.Game, transactionMap map[int64]map[st
 			PaymentProofURL: paymentProofWithTxID(blockchainTxURL, v.TransactionID),
 			WinnerAddress:   v.Address,
 			JackpotAmount:   v.TotalAmount * (1 - fee),
-			Records:         calculateWinProbability(transactionMap[v.GameOf.Unix()], v.TotalAmount),
+			Records:         calculateWinProbability(transactionMap[v.GameOf], v.TotalAmount),
 		}
 	}
 	return response

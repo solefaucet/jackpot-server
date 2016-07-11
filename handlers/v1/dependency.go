@@ -7,6 +7,6 @@ import (
 )
 
 type (
-	dependencyGetGamesWithin        func(start, end time.Time) ([]models.Game, error)
-	dependencyGetTransactionsWithin func(start, end time.Time) ([]models.Transaction, error)
+	dependencyGetGames                 func(limit, offset int64) ([]models.Game, error)
+	dependencyGetTransactionsByGameOfs func(gameOfs ...time.Time) ([]models.Transaction, error)
 )
