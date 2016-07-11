@@ -12,13 +12,12 @@ type Storage interface {
 	GetLatestBlock() (models.Block, error)
 
 	// transaction
-	GetTransactionsWithin(start, end time.Time) ([]models.Transaction, error)
 	GetUnconfirmedTransactions(confirmations int64) ([]models.Transaction, error)
-	GetTransactionsByGameOf(gameOf time.Time) ([]models.Transaction, error)
+	GetTransactionsByGameOfs(gameOfs ...time.Time) ([]models.Transaction, error)
 	UpdateTransactionConfirmationByID(id int64, confirmations int64) error
 
 	// game
-	GetGamesWithin(start, end time.Time) ([]models.Game, error)
+	GetGames(limit, offset int64) ([]models.Game, error)
 	GetDrawingNeededGames() ([]models.Game, error)
 	UpdateGameToEndedStatus(models.Game) error
 

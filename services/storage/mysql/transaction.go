@@ -21,13 +21,6 @@ func saveTransactions(tx *sqlx.Tx, transactions []models.Transaction) error {
 	return nil
 }
 
-// GetTransactionsWithin gets all transactions, filter by block_created_at = [start, end)
-func (s Storage) GetTransactionsWithin(start, end time.Time) ([]models.Transaction, error) {
-	transactions := []models.Transaction{}
-	err := s.db.Select(&transactions, "SELECT * FROM `transactions` WHERE `block_created_at` >= ? AND `block_created_at` < ? ORDER BY `block_created_at` DESC", start, end)
-	return transactions, err
-}
-
 // GetUnconfirmedTransactions gets all unconfirmed transactions
 func (s Storage) GetUnconfirmedTransactions(confirmations int64) ([]models.Transaction, error) {
 	transactions := []models.Transaction{}
@@ -35,10 +28,18 @@ func (s Storage) GetUnconfirmedTransactions(confirmations int64) ([]models.Trans
 	return transactions, err
 }
 
-// GetTransactionsByGameOf gets all transactions, filter by game_of
-func (s Storage) GetTransactionsByGameOf(gameOf time.Time) ([]models.Transaction, error) {
+// GetTransactionsByGameOfs gets all transactions, filter by game_of
+func (s Storage) GetTransactionsByGameOfs(gameOfs ...time.Time) ([]models.Transaction, error) {
+	sql, args, err := sqlx.In(
+		"SELECT * FROM `transactions` WHERE `game_of` IN (?) ORDER BY `block_created_at` DESC",
+		gameOfs,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("fail to build sql with in: %v", err)
+	}
+
 	transactions := []models.Transaction{}
-	err := s.db.Select(&transactions, "SELECT * FROM `transactions` WHERE `game_of` = ? ORDER BY `block_created_at` DESC", gameOf)
+	err = s.db.Select(&transactions, sql, args...)
 	return transactions, err
 }
 
