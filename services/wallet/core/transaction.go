@@ -95,9 +95,9 @@ func (w Wallet) getRawTransactionResult(txid string) (*btcjson.TxRawResult, erro
 	return result, nil
 }
 
-// SendToAddress send coin to address, return transaction id
-func (w Wallet) SendToAddress(address string, amount float64) (string, error) {
-	hash, err := w.client.SendToAddress(address, amount)
+// SendFromAccountToAddress send coin to address, return transaction id
+func (w Wallet) SendFromAccountToAddress(account, address string, amount float64) (string, error) {
+	hash, err := w.client.SendFrom(account, address, amount)
 	if err != nil {
 		return "", fmt.Errorf("core wallet send to address error: %#v", err)
 	}

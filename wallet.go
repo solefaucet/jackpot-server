@@ -269,7 +269,7 @@ func findWinnerAndSendCoins(gameOf time.Time, hash string) (winnerAddress, trans
 		return
 	}
 
-	transactionID, err = wallet.SendToAddress(winnerAddress, winAmount)
+	transactionID, err = wallet.SendFromAccountToAddress(config.Wallet.SentFromAccount, winnerAddress, winAmount)
 	if err != nil {
 		return
 	}
