@@ -89,8 +89,8 @@ func main() {
 	v1Endpoints.GET(
 		"/games",
 		v1.Games(
-			storage.GetGamesWithin,
-			storage.GetTransactionsWithin,
+			storage.GetGames,
+			storage.GetTransactionsByGameOfs,
 			config.Jackpot.DestAddress,
 			config.Jackpot.Duration,
 			config.Jackpot.TransactionFee,
