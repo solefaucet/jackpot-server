@@ -30,6 +30,10 @@ func (s Storage) GetUnconfirmedTransactions(confirmations int64) ([]models.Trans
 
 // GetTransactionsByGameOfs gets all transactions, filter by game_of
 func (s Storage) GetTransactionsByGameOfs(gameOfs ...time.Time) ([]models.Transaction, error) {
+	if len(gameOfs) <= 0 {
+		return nil, nil
+	}
+
 	sql, args, err := sqlx.In(
 		"SELECT * FROM `transactions` WHERE `game_of` IN (?) ORDER BY `block_created_at` DESC",
 		gameOfs,
