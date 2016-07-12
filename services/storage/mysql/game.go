@@ -41,10 +41,10 @@ func updateGameToDrawingNeededStatus(tx *sqlx.Tx, game *models.Game) error {
 	return nil
 }
 
-// GetGamesWithin gets all games, filter by game_of = [start, end)
-func (s Storage) GetGamesWithin(start, end time.Time) ([]models.Game, error) {
+// GetGames gets games order by game_of desc, limit n, offset n
+func (s Storage) GetGames(limit, offset int64) ([]models.Game, error) {
 	games := []models.Game{}
-	err := s.db.Select(&games, "SELECT * FROM `games` WHERE `game_of` >= ? AND `game_of` < ? ORDER BY `game_of` DESC", start, end)
+	err := s.db.Select(&games, "SELECT * FROM `games` ORDER BY `game_of` DESC LIMIT ? OFFSET ?", limit, offset)
 	return games, err
 }
 

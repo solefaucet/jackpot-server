@@ -30,8 +30,8 @@ func TestGames(t *testing.T) {
 	})
 
 	Convey("Given games handler with errored get games within", t, func() {
-		getGamesWithin := mockDependencyGetGamesWithin(nil, fmt.Errorf(""))
-		handler := Games(getGamesWithin, nil, "", time.Minute, 0, "", "", "", "")
+		getGames := mockDependencyGetGames(nil, fmt.Errorf(""))
+		handler := Games(getGames, nil, "", time.Minute, 0, "", "", "", "")
 
 		Convey("When request games handler", func() {
 			route := "/games"
@@ -47,9 +47,9 @@ func TestGames(t *testing.T) {
 	})
 
 	Convey("Given games handler with errored get transactions within", t, func() {
-		getGamesWithin := mockDependencyGetGamesWithin(nil, nil)
-		getTransactionsWithin := mockDependencyGetTransactionsWithin(nil, fmt.Errorf(""))
-		handler := Games(getGamesWithin, getTransactionsWithin, "", time.Minute, 0, "", "", "", "")
+		getGames := mockDependencyGetGames(nil, nil)
+		getTransactionsWithin := mockDependencyGetTransactionsByGameOfs(nil, fmt.Errorf(""))
+		handler := Games(getGames, getTransactionsWithin, "", time.Minute, 0, "", "", "", "")
 
 		Convey("When request games handler", func() {
 			route := "/games"
@@ -65,9 +65,11 @@ func TestGames(t *testing.T) {
 	})
 
 	Convey("Given games handler with everything correct", t, func() {
-		getGamesWithin := mockDependencyGetGamesWithin(nil, nil)
-		getTransactionsWithin := mockDependencyGetTransactionsWithin(nil, nil)
-		handler := Games(getGamesWithin, getTransactionsWithin, "", time.Minute, 0, "", "", "", "")
+		getGames := mockDependencyGetGames([]models.Game{
+			{},
+		}, nil)
+		getTransactionsWithin := mockDependencyGetTransactionsByGameOfs(nil, nil)
+		handler := Games(getGames, getTransactionsWithin, "", time.Minute, 0, "", "", "", "")
 
 		Convey("When request games handler", func() {
 			route := "/games"
@@ -86,10 +88,10 @@ func TestGames(t *testing.T) {
 func TestGetCurrentJackpotAmount(t *testing.T) {
 	Convey("Given errored get games within", t, func() {
 		expected := fmt.Errorf("error")
-		getGamesWithin := mockDependencyGetGamesWithin(nil, expected)
+		getGames := mockDependencyGetGames(nil, expected)
 
 		Convey("When get current jackpot amount", func() {
-			amount := getCurrentJackpotAmount(getGamesWithin, time.Now(), time.Now(), 0)
+			amount := getCurrentJackpotAmount(getGames, 0)
 
 			Convey("Amount should equal 0", func() {
 				So(amount, ShouldEqual, 0)
@@ -98,12 +100,12 @@ func TestGetCurrentJackpotAmount(t *testing.T) {
 	})
 
 	Convey("Given get games within returning one result", t, func() {
-		getGamesWithin := mockDependencyGetGamesWithin([]models.Game{
+		getGames := mockDependencyGetGames([]models.Game{
 			{TotalAmount: 100},
 		}, nil)
 
 		Convey("When get current jackpot amount", func() {
-			amount := getCurrentJackpotAmount(getGamesWithin, time.Now(), time.Now(), 0.5)
+			amount := getCurrentJackpotAmount(getGames, 0.5)
 
 			Convey("Amount should be 50", func() {
 				So(amount, ShouldEqual, 50)
@@ -112,10 +114,10 @@ func TestGetCurrentJackpotAmount(t *testing.T) {
 	})
 
 	Convey("Given get games within returning no result", t, func() {
-		getGamesWithin := mockDependencyGetGamesWithin([]models.Game{}, nil)
+		getGames := mockDependencyGetGames([]models.Game{}, nil)
 
 		Convey("When get current jackpot amount", func() {
-			amount := getCurrentJackpotAmount(getGamesWithin, time.Now(), time.Now(), 0.5)
+			amount := getCurrentJackpotAmount(getGames, 0.5)
 
 			Convey("Amount should be 0", func() {
 				So(amount, ShouldEqual, 0)
@@ -129,22 +131,20 @@ func TestConstructTransactionMap(t *testing.T) {
 	now := time.Now().Truncate(duration)
 	durationAgo := now.Add(-duration)
 	transactions := []models.Transaction{
-		{Address: "a1", Amount: 1, BlockCreatedAt: now.Add(3 * time.Minute)},
-		{Address: "a2", Amount: 1, BlockCreatedAt: now.Add(2 * time.Minute)},
-		{Address: "a1", Amount: 1, BlockCreatedAt: now.Add(time.Minute)},
-		{Address: "b1", Amount: 1, BlockCreatedAt: durationAgo.Add(time.Minute)},
-		{Address: "b2", Amount: 1, BlockCreatedAt: durationAgo.Add(time.Minute)},
+		{Address: "a1", Amount: 1, GameOf: now, BlockCreatedAt: now.Add(3 * time.Minute)},
+		{Address: "a2", Amount: 1, GameOf: now, BlockCreatedAt: now.Add(2 * time.Minute)},
+		{Address: "a1", Amount: 1, GameOf: now, BlockCreatedAt: now.Add(time.Minute)},
+		{Address: "b1", Amount: 1, GameOf: durationAgo, BlockCreatedAt: durationAgo.Add(time.Minute)},
+		{Address: "b2", Amount: 1, GameOf: durationAgo, BlockCreatedAt: durationAgo.Add(time.Minute)},
 	}
 
-	nowTimestamp := now.Unix()
-	durationAgoTimestamp := durationAgo.Unix()
-	actual := constructTransactionMap(transactions, duration)
-	expected := map[int64]map[string]*record{
-		nowTimestamp: map[string]*record{
+	actual := constructTransactionMap(transactions)
+	expected := map[time.Time]map[string]*record{
+		now: map[string]*record{
 			"a1": &record{Amount: 2, ReceivedAt: now.Add(3 * time.Minute)},
 			"a2": &record{Amount: 1, ReceivedAt: now.Add(2 * time.Minute)},
 		},
-		durationAgoTimestamp: map[string]*record{
+		durationAgo: map[string]*record{
 			"b1": &record{Amount: 1, ReceivedAt: durationAgo.Add(time.Minute)},
 			"b2": &record{Amount: 1, ReceivedAt: durationAgo.Add(time.Minute)},
 		},
@@ -181,18 +181,16 @@ func TestConstructGamesResponse(t *testing.T) {
 	duration := time.Hour
 	now := time.Now().Truncate(duration)
 	durationAgo := now.Add(-duration)
-	nowTimestamp := now.Unix()
-	durationAgoTimestamp := durationAgo.Unix()
 	games := []models.Game{
 		{TransactionID: "tx_id_1", TotalAmount: 100, GameOf: now},
 		{TransactionID: "", TotalAmount: 100, GameOf: durationAgo},
 	}
-	transactionMap := map[int64]map[string]*record{
-		nowTimestamp: map[string]*record{
+	transactionMap := map[time.Time]map[string]*record{
+		now: map[string]*record{
 			"a1": &record{Amount: 2, ReceivedAt: now.Add(3 * time.Minute)},
 			"a2": &record{Amount: 1, ReceivedAt: now.Add(2 * time.Minute)},
 		},
-		durationAgoTimestamp: map[string]*record{
+		durationAgo: map[string]*record{
 			"b1": &record{Amount: 1, ReceivedAt: durationAgo.Add(time.Minute)},
 			"b2": &record{Amount: 1, ReceivedAt: durationAgo.Add(time.Minute)},
 		},
@@ -200,13 +198,13 @@ func TestConstructGamesResponse(t *testing.T) {
 
 	actual := constructGamesResponse(games, transactionMap, 0, "url/")
 
-	transactionMap[nowTimestamp]["a1"].WinProbability = 0.02
-	transactionMap[nowTimestamp]["a2"].WinProbability = 0.01
-	transactionMap[durationAgoTimestamp]["b1"].WinProbability = 0.01
-	transactionMap[durationAgoTimestamp]["b2"].WinProbability = 0.01
+	transactionMap[now]["a1"].WinProbability = 0.02
+	transactionMap[now]["a2"].WinProbability = 0.01
+	transactionMap[durationAgo]["b1"].WinProbability = 0.01
+	transactionMap[durationAgo]["b2"].WinProbability = 0.01
 	expected := []gameResponse{
-		{GameOf: now, JackpotAmount: 100, PaymentProofURL: "url/tx_id_1", Records: transactionMap[nowTimestamp]},
-		{GameOf: durationAgo, JackpotAmount: 100, PaymentProofURL: "", Records: transactionMap[durationAgoTimestamp]},
+		{GameOf: now, JackpotAmount: 100, PaymentProofURL: "url/tx_id_1", Records: transactionMap[now]},
+		{GameOf: durationAgo, JackpotAmount: 100, PaymentProofURL: "", Records: transactionMap[durationAgo]},
 	}
 
 	if !reflect.DeepEqual(actual, expected) {

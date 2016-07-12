@@ -197,7 +197,7 @@ func drawGames() {
 	}
 
 	for _, game := range games {
-		transactions, err := storage.GetTransactionsByGameOf(game.GameOf)
+		transactions, err := storage.GetTransactionsByGameOfs(game.GameOf)
 		if err != nil {
 			entry.WithFields(logrus.Fields{
 				"error":   err.Error(),
@@ -250,7 +250,7 @@ func allTransactionsConfirmed(transactions []models.Transaction) bool {
 }
 
 func findWinnerAndSendCoins(gameOf time.Time, hash string) (winnerAddress, transactionID string, winAmount, fee float64, err error) {
-	transactions, err := storage.GetTransactionsByGameOf(gameOf)
+	transactions, err := storage.GetTransactionsByGameOfs(gameOf)
 	if err != nil {
 		return
 	}
