@@ -27,10 +27,11 @@ type configuration struct {
 		Graylog graylog `mapstructure:"graylog" validate:"required,dive"`
 	} `validate:"required"`
 	Wallet struct {
-		Host        string `validate:"required"`
-		Username    string `validate:"required"`
-		Password    string `validate:"required"`
-		MinConfirms int64  `validate:"required,min=1"`
+		Host            string `validate:"required"`
+		Username        string `validate:"required"`
+		Password        string `validate:"required"`
+		MinConfirms     int64  `validate:"required,min=1"`
+		SentFromAccount string `validate:"required"`
 	} `validate:"required"`
 	Coin struct {
 		Type       string `validate:"required"`
@@ -71,6 +72,7 @@ func initConfig() {
 	config.Wallet.Username = viper.GetString("wallet_rpc_username")
 	config.Wallet.Password = viper.GetString("wallet_rpc_password")
 	config.Wallet.MinConfirms = int64(viper.GetInt("wallet_min_confirms"))
+	config.Wallet.SentFromAccount = viper.GetString("wallet_sent_from_account")
 
 	config.Coin.Type = viper.GetString("coin_type")
 	config.Coin.Label = viper.GetString("coin_label")

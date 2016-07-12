@@ -6,7 +6,7 @@ import "time"
 type Wallet interface {
 	GetBlock(bestBlock bool, height int64) (*Block, error)
 	GetReceivedSince(prevHash, curHash string) ([]Transaction, error)
-	SendToAddress(address string, amount float64) (string, error)
+	SendFromAccountToAddress(account, address string, amount float64) (string, error)
 	GetDestAddress() (string, error)
 	GetConfirmationsFromTxID(txID string) (int64, error)
 }
