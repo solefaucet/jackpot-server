@@ -264,11 +264,7 @@ func findWinnerAndSendCoins(gameOf time.Time, hash string) (winnerAddress, trans
 	fee = totalAmount * config.Jackpot.TransactionFee
 	winAmount = totalAmount - fee
 
-	winnerAddress, err = utils.FindWinner(transactions, hash)
-	if err != nil {
-		return
-	}
-
+	winnerAddress = utils.FindWinner(transactions, hash)
 	transactionID, err = wallet.SendFromAccountToAddress(config.Wallet.SentFromAccount, winnerAddress, winAmount)
 	if err != nil {
 		return
