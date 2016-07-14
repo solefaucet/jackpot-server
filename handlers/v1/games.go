@@ -24,6 +24,7 @@ type gameResponse struct {
 	GameOf          time.Time          `json:"game_of"`
 	PaymentProofURL string             `json:"payment_proof_url"`
 	WinnerAddress   string             `json:"winner_address"`
+	Hash            string             `json:"hash"`
 	JackpotAmount   float64            `json:"jackpot_amount"`
 	Records         map[string]*record `json:"records"`
 }
@@ -152,6 +153,7 @@ func constructGamesResponse(games []models.Game, transactionMap map[time.Time]ma
 			GameOf:          v.GameOf,
 			PaymentProofURL: paymentProofWithTxID(blockchainTxURL, v.TransactionID),
 			WinnerAddress:   v.Address,
+			Hash:            v.Hash,
 			JackpotAmount:   v.TotalAmount * (1 - fee),
 			Records:         calculateWinProbability(transactionMap[v.GameOf], v.TotalAmount),
 		}
