@@ -62,7 +62,7 @@ func fetchBlocks(height int64) {
 	var err error
 	defer func() {
 		if err != nil {
-			time.Sleep(time.Minute)
+			time.Sleep(5 * time.Second)
 		}
 
 		blockHeightChan <- height
