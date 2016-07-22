@@ -29,13 +29,9 @@ func updateGameToDrawingNeededStatus(tx *sqlx.Tx, game *models.Game) error {
 	}
 
 	sql := "UPDATE `games` SET `hash` = ?, `height` = ?, `status` = ? WHERE `game_of` = ? AND `status` = ?"
-	result, err := tx.Exec(sql, game.Hash, game.Height, models.GameStatusDrawingNeeded, game.GameOf, models.GameStatusPending)
+	_, err := tx.Exec(sql, game.Hash, game.Height, models.GameStatusDrawingNeeded, game.GameOf, models.GameStatusPending)
 	if err != nil {
 		return fmt.Errorf("update game to drawing needed status error: %#v", err)
-	}
-
-	if affect, _ := result.RowsAffected(); affect != 1 {
-		return fmt.Errorf("update game to drawing needed status affected row not 1 but %v", affect)
 	}
 
 	return nil
